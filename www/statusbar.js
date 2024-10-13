@@ -43,6 +43,16 @@ var namedColors = {
 var StatusBar = {
     isVisible: true,
 
+    addBorder: function(color, width, success, error) {
+        exec(success, error, 'StatusBar', 'addBorder', [color, width]);
+    },
+    removeBorder: function(success, error) {
+        exec(success, error, 'StatusBar', 'removeBorder', []);
+    },
+    getHeight: function (success, error) {
+        exec(success, error, 'StatusBar', 'getHeight', []);
+    },
+
     overlaysWebView: function (doOverlay) {
         exec(null, null, 'StatusBar', 'overlaysWebView', [doOverlay]);
     },

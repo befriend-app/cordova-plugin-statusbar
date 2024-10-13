@@ -25,7 +25,6 @@
 
 #import "CDVStatusBar.h"
 #import <objc/runtime.h>
-#import <objc/message.h>
 #import <Cordova/CDVViewController.h>
 
 static const void *kHideStatusBar = &kHideStatusBar;
@@ -77,6 +76,58 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 @end
 
 @implementation CDVStatusBar
+
+- (void)addBorder:(CDVInvokedUrlCommand*)command
+{
+    NSString* colorString = [command.arguments objectAtIndex:0];
+    UIColor* color = [self colorFromHexString:colorString];
+
+    NSNumber* widthNumber = [command.arguments objectAtIndex:1];
+    CGFloat width = [widthNumber floatValue];
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!self.borderWindow) {
+            self.borderWindow = [[UIWindow alloc] initWithFrame:CGRectZero];
+            self.borderWindow.windowLevel = UIWindowLevelStatusBar;
+            self.borderWindow.hidden = NO;
+        }
+
+        CGFloat statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+        self.borderWindow.frame = CGRectMake(0, statusBarHeight, [UIScreen mainScreen].bounds.size.width, width);
+        self.borderWindow.backgroundColor = color;
+    });
+
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void)removeBorder:(CDVInvokedUrlCommand*)command
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.borderWindow) {
+            self.borderWindow.hidden = YES;
+            self.borderWindow = nil;
+        }
+    });
+
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (UIColor *)colorFromHexString:(NSString *)hexString {
+    unsigned rgbValue = 0;
+    NSScanner *scanner = [NSScanner scannerWithString:hexString];
+    [scanner setScanLocation:1]; // bypass '#' character
+    [scanner scanHexInt:&rgbValue];
+    return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
+}
+
+- (void)getHeight:(CDVInvokedUrlCommand*)command
+{
+    CGFloat statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDouble:statusBarHeight];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
 
 - (id)settingForKey:(NSString*)key
 {
@@ -144,11 +195,11 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
     setting  = @"StatusBarDefaultScrollToTop";
     if ([self settingForKey:setting]) {
-        [self webViewScrollView].scrollsToTop = [(NSNumber*)[self settingForKey:setting] boolValue];
+        self.webView.scrollView.scrollsToTop = [(NSNumber*)[self settingForKey:setting] boolValue];
     } else {
-        [self webViewScrollView].scrollsToTop = NO;
+        self.webView.scrollView.scrollsToTop = NO;
     }
- 
+
     // blank scroll view to intercept status bar taps
     UIScrollView *fakeScrollView = [[UIScrollView alloc] initWithFrame:UIScreen.mainScreen.bounds];
     fakeScrollView.delegate = self;
@@ -454,24 +505,13 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     }
     frame.size.height -= frame.origin.y;
     self.webView.frame = frame;
-    
+
 }
 
 - (void) dealloc
 {
     [[UIApplication sharedApplication] removeObserver:self forKeyPath:@"statusBarHidden"];
     [[NSNotificationCenter defaultCenter]removeObserver:self name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
-}
-
-- (UIScrollView *)webViewScrollView
-{
-    SEL scrollViewSelector = NSSelectorFromString(@"scrollView");
-
-    if ([self.webView respondsToSelector:scrollViewSelector]) {
-        return ((id (*)(id, SEL))objc_msgSend)(self.webView, scrollViewSelector);
-    }
-
-    return nil;
 }
 
 

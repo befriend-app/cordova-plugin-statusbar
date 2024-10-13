@@ -29,8 +29,15 @@
     NSString* _eventsCallbackId;
 }
 
+@property (nonatomic, strong) UIWindow *borderWindow;
+
 @property (atomic, assign) BOOL statusBarOverlaysWebView;
 @property (atomic, assign) BOOL statusBarVisible;
+
+- (void)addBorder:(CDVInvokedUrlCommand*)command;
+- (void)removeBorder:(CDVInvokedUrlCommand*)command;
+
+- (void)getHeight:(CDVInvokedUrlCommand*)command;
 
 - (void) overlaysWebView:(CDVInvokedUrlCommand*)command;
 

@@ -20,6 +20,8 @@
 #import <Cordova/CDVPlugin.h>
 #import <Cordova/CDVInvokedUrlCommand.h>
 
+#define StatusBarViewTag 1234567890
+
 @interface CDVStatusBar : CDVPlugin {
     @protected
     BOOL _statusBarOverlaysWebView;
@@ -28,6 +30,8 @@
     UIColor* _statusBarBackgroundColor;
     NSString* _eventsCallbackId;
 }
+
+@property (nonatomic, assign) CGFloat lastSetAlpha;
 
 @property (nonatomic, strong) UIWindow *borderWindow;
 
@@ -50,7 +54,7 @@
 
 - (void) hide:(CDVInvokedUrlCommand*)command;
 - (void) show:(CDVInvokedUrlCommand*)command;
-    
+
 - (void) _ready:(CDVInvokedUrlCommand*)command;
 
 @end

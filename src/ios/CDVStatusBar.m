@@ -80,26 +80,44 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 - (void)setBackgroundTransparency:(CDVInvokedUrlCommand*)command
 {
     NSNumber* alphaParam = [command.arguments objectAtIndex:0];
-    CGFloat alpha = 0.5; // Default value
+    CGFloat targetAlpha = 0.5; // Default value
 
     if (alphaParam != nil && [alphaParam isKindOfClass:[NSNumber class]]) {
-        alpha = [alphaParam floatValue];
+        targetAlpha = [alphaParam floatValue];
         // Ensure alpha is between 0 and 1
-        alpha = fmin(fmax(alpha, 0.0), 1.0);
+        targetAlpha = fmin(fmax(targetAlpha, 0.0), 1.0);
     }
 
+    // Get transition duration from command arguments or use default
+    NSNumber* durationParam = [command.arguments objectAtIndex:1];
+    CGFloat duration = durationParam ? [durationParam floatValue] : 0.3; // Default to 0.3 seconds if not specified
+
     dispatch_async(dispatch_get_main_queue(), ^{
+        UIView *statusBarView;
+        CGFloat currentAlpha = self.lastSetAlpha;
+
         if (@available(iOS 13.0, *)) {
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            UIView *statusBarView = [[UIView alloc] initWithFrame:window.windowScene.statusBarManager.statusBarFrame];
-            statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:alpha];
-            [window addSubview:statusBarView];
-        } else {
-            UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
-            if ([statusBar respondsToSelector:@selector(setBackgroundColor:)]) {
-                statusBar.backgroundColor = [UIColor colorWithWhite:1.0 alpha:alpha];
+            if (!window) {
+                NSLog(@"Error: Could not find main window");
+                return;
             }
+
+            statusBarView = [self findOrCreateStatusBarViewInWindow:window];
+        } else {
+            statusBarView = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
         }
+
+        if (!statusBarView) {
+            NSLog(@"Error: Could not find or create status bar view");
+            return;
+        }
+
+        [UIView animateWithDuration:duration animations:^{
+            statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:targetAlpha];
+        } completion:^(BOOL finished) {
+            CGFloat resultingAlpha = CGColorGetAlpha(statusBarView.backgroundColor.CGColor);
+        }];
 
         // Make sure the status bar is visible
         [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationFade];
@@ -107,9 +125,24 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
         // Extend the view under the status bar
         self.viewController.edgesForExtendedLayout = UIRectEdgeAll;
 
+        self.lastSetAlpha = targetAlpha;
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     });
+}
+
+- (UIView *)findOrCreateStatusBarViewInWindow:(UIWindow *)window
+{
+    UIView *statusBarView = [window viewWithTag:StatusBarViewTag];
+    if (!statusBarView) {
+        CGRect statusBarFrame = window.windowScene.statusBarManager.statusBarFrame;
+        statusBarView = [[UIView alloc] initWithFrame:statusBarFrame];
+        statusBarView.tag = StatusBarViewTag;
+        statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:self.lastSetAlpha];
+        [window addSubview:statusBarView];
+        [window bringSubviewToFront:statusBarView];
+    }
+    return statusBarView;
 }
 
 - (void)addBorder:(CDVInvokedUrlCommand*)command
@@ -234,6 +267,8 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     } else {
         self.webView.scrollView.scrollsToTop = NO;
     }
+
+    self.lastSetAlpha = 1.0; // Start with fully opaque
 
     // blank scroll view to intercept status bar taps
     UIScrollView *fakeScrollView = [[UIScrollView alloc] initWithFrame:UIScreen.mainScreen.bounds];

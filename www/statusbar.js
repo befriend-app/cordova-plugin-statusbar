@@ -42,7 +42,9 @@ var namedColors = {
 
 var StatusBar = {
     isVisible: true,
-
+    setBackgroundTransparency: function(alpha, success, error) {
+        exec(success, error, "StatusBar", "setBackgroundTransparency", [alpha]);
+    },
     addBorder: function(color, width, success, error) {
         exec(success, error, 'StatusBar', 'addBorder', [color, width]);
     },

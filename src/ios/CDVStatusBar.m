@@ -77,6 +77,41 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
 @implementation CDVStatusBar
 
+- (void)setBackgroundTransparency:(CDVInvokedUrlCommand*)command
+{
+    NSNumber* alphaParam = [command.arguments objectAtIndex:0];
+    CGFloat alpha = 0.5; // Default value
+
+    if (alphaParam != nil && [alphaParam isKindOfClass:[NSNumber class]]) {
+        alpha = [alphaParam floatValue];
+        // Ensure alpha is between 0 and 1
+        alpha = fmin(fmax(alpha, 0.0), 1.0);
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (@available(iOS 13.0, *)) {
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            UIView *statusBarView = [[UIView alloc] initWithFrame:window.windowScene.statusBarManager.statusBarFrame];
+            statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:alpha];
+            [window addSubview:statusBarView];
+        } else {
+            UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+            if ([statusBar respondsToSelector:@selector(setBackgroundColor:)]) {
+                statusBar.backgroundColor = [UIColor colorWithWhite:1.0 alpha:alpha];
+            }
+        }
+
+        // Make sure the status bar is visible
+        [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationFade];
+
+        // Extend the view under the status bar
+        self.viewController.edgesForExtendedLayout = UIRectEdgeAll;
+
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    });
+}
+
 - (void)addBorder:(CDVInvokedUrlCommand*)command
 {
     NSString* colorString = [command.arguments objectAtIndex:0];

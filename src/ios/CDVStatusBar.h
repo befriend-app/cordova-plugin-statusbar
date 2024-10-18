@@ -34,6 +34,7 @@
 @property (atomic, assign) BOOL statusBarOverlaysWebView;
 @property (atomic, assign) BOOL statusBarVisible;
 
+- (void) setBackgroundTransparency:(CDVInvokedUrlCommand*)command;
 - (void)addBorder:(CDVInvokedUrlCommand*)command;
 - (void)removeBorder:(CDVInvokedUrlCommand*)command;
 

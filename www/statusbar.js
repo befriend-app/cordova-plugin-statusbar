@@ -42,6 +42,12 @@ var namedColors = {
 
 var StatusBar = {
     isVisible: true,
+    setStatusBarBorder: function(px, color, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "StatusBar", "setStatusBarBorder", [px, color]);
+    },
+    transformStatusBar: function(yOffset, duration, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "StatusBar", "transformStatusBar", [yOffset, duration]);
+    },
     setBackgroundTransparency: function(alpha, transition, success, error) {
         if(!transition) {
             transition = .3;
@@ -50,34 +56,23 @@ var StatusBar = {
         }
         exec(success, error, "StatusBar", "setBackgroundTransparency", [alpha, transition]);
     },
-    addBorder: function(color, width, success, error) {
-        exec(success, error, 'StatusBar', 'addBorder', [color, width]);
-    },
-    removeBorder: function(success, error) {
-        exec(success, error, 'StatusBar', 'removeBorder', []);
-    },
     getHeight: function (success, error) {
         exec(success, error, 'StatusBar', 'getHeight', []);
     },
-
     overlaysWebView: function (doOverlay) {
         exec(null, null, 'StatusBar', 'overlaysWebView', [doOverlay]);
     },
-
     styleDefault: function () {
         // dark text ( to be used on a light background )
         exec(null, null, 'StatusBar', 'styleDefault', []);
     },
-
     styleLightContent: function () {
         // light text ( to be used on a dark background )
         exec(null, null, 'StatusBar', 'styleLightContent', []);
     },
-
     backgroundColorByName: function (colorname) {
         return StatusBar.backgroundColorByHexString(namedColors[colorname]);
     },
-
     backgroundColorByHexString: function (hexString) {
         if (hexString.charAt(0) !== '#') {
             hexString = '#' + hexString;
@@ -90,12 +85,10 @@ var StatusBar = {
 
         exec(null, null, 'StatusBar', 'backgroundColorByHexString', [hexString]);
     },
-
     hide: function () {
         exec(null, null, 'StatusBar', 'hide', []);
         StatusBar.isVisible = false;
     },
-
     show: function () {
         exec(null, null, 'StatusBar', 'show', []);
         StatusBar.isVisible = true;

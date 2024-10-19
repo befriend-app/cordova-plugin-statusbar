@@ -21,6 +21,8 @@
 #import <Cordova/CDVInvokedUrlCommand.h>
 
 #define StatusBarViewTag 1234567890
+#define StatusBarBorderViewTag 1234567891
+
 
 @interface CDVStatusBar : CDVPlugin {
     @protected
@@ -38,23 +40,23 @@
 @property (atomic, assign) BOOL statusBarOverlaysWebView;
 @property (atomic, assign) BOOL statusBarVisible;
 
-- (void) setBackgroundTransparency:(CDVInvokedUrlCommand*)command;
-- (void)addBorder:(CDVInvokedUrlCommand*)command;
-- (void)removeBorder:(CDVInvokedUrlCommand*)command;
+- (void)transformStatusBar:(CDVInvokedUrlCommand*)command;
+- (void)setStatusBarBorder:(CDVInvokedUrlCommand*)command;
+- (void)setBackgroundTransparency:(CDVInvokedUrlCommand*)command;
 
 - (void)getHeight:(CDVInvokedUrlCommand*)command;
 
-- (void) overlaysWebView:(CDVInvokedUrlCommand*)command;
+- (void)overlaysWebView:(CDVInvokedUrlCommand*)command;
 
-- (void) styleDefault:(CDVInvokedUrlCommand*)command;
-- (void) styleLightContent:(CDVInvokedUrlCommand*)command;
+- (void)styleDefault:(CDVInvokedUrlCommand*)command;
+- (void)styleLightContent:(CDVInvokedUrlCommand*)command;
 
-- (void) backgroundColorByName:(CDVInvokedUrlCommand*)command;
+- (void)backgroundColorByName:(CDVInvokedUrlCommand*)command;
 - (void) backgroundColorByHexString:(CDVInvokedUrlCommand*)command;
 
-- (void) hide:(CDVInvokedUrlCommand*)command;
-- (void) show:(CDVInvokedUrlCommand*)command;
+- (void)hide:(CDVInvokedUrlCommand*)command;
+- (void)show:(CDVInvokedUrlCommand*)command;
 
-- (void) _ready:(CDVInvokedUrlCommand*)command;
+- (void)_ready:(CDVInvokedUrlCommand*)command;
 
 @end

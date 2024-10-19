@@ -77,6 +77,105 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
 @implementation CDVStatusBar
 
+- (void)transformStatusBar:(CDVInvokedUrlCommand*)command
+{
+    NSNumber* yOffsetParam = [command.arguments objectAtIndex:0];
+    CGFloat yOffset = [yOffsetParam floatValue];
+
+    NSNumber* durationParam = [command.arguments objectAtIndex:1];
+    CGFloat duration = durationParam ? [durationParam floatValue] : 0.3; // Default to 0.3 seconds if not specified
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+        if (!window) {
+            NSLog(@"Error: Could not find main window");
+            return;
+        }
+
+        UIView *statusBarView = [self findOrCreateStatusBarViewInWindow:window];
+
+        [UIView animateWithDuration:duration animations:^{
+            statusBarView.transform = CGAffineTransformMakeTranslation(0, -yOffset);
+        } completion:^(BOOL finished) {
+            NSLog(@"Status bar transform completed. Y offset: %f", yOffset);
+        }];
+
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    });
+}
+
+- (UIView *)findOrCreateStatusBarViewInWindow:(UIWindow *)window
+{
+    UIView *statusBarView = [window viewWithTag:StatusBarViewTag];
+    if (!statusBarView) {
+        CGRect statusBarFrame = window.windowScene.statusBarManager.statusBarFrame;
+                // Create a view that's 50px taller than the status bar
+                CGRect customFrame = CGRectMake(statusBarFrame.origin.x,
+                                                statusBarFrame.origin.y - 50,
+                                                statusBarFrame.size.width,
+                                                statusBarFrame.size.height + 50);
+                statusBarView = [[UIView alloc] initWithFrame:customFrame];
+                statusBarView.tag = StatusBarViewTag;
+                statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:self.lastSetAlpha];
+
+                // Add border view
+                UIView *borderView = [[UIView alloc] initWithFrame:CGRectMake(0, customFrame.size.height - 1, customFrame.size.width, 1)];
+                borderView.backgroundColor = [UIColor clearColor]; // Initially transparent
+                borderView.tag = StatusBarBorderViewTag;
+                [statusBarView addSubview:borderView];
+
+                [window addSubview:statusBarView];
+                [window bringSubviewToFront:statusBarView];
+    }
+    return statusBarView;
+}
+
+- (void)setStatusBarBorder:(CDVInvokedUrlCommand*)command
+{
+    NSNumber* thicknessNumber = [command.arguments objectAtIndex:0];
+    NSString* colorString = [command.arguments objectAtIndex:1];
+
+    CGFloat thickness = [thicknessNumber floatValue];
+    UIColor *color = [self colorFromHexString:colorString];
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+        if (!window) {
+            NSLog(@"Error: Could not find main window");
+            return;
+        }
+
+        UIView *statusBarView = [self findOrCreateStatusBarViewInWindow:window];
+        UIView *borderView = [statusBarView viewWithTag:StatusBarBorderViewTag];
+
+        if (borderView) {
+            borderView.backgroundColor = color;
+            CGRect frame = borderView.frame;
+            frame.origin.y = statusBarView.frame.size.height - thickness;
+            frame.size.height = thickness;
+            borderView.frame = frame;
+        }
+
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    });
+}
+
+//- (UIView *)findOrCreateStatusBarViewInWindow:(UIWindow *)window
+//{
+//    UIView *statusBarView = [window viewWithTag:StatusBarViewTag];
+//    if (!statusBarView) {
+//        CGRect statusBarFrame = window.windowScene.statusBarManager.statusBarFrame;
+//        statusBarView = [[UIView alloc] initWithFrame:statusBarFrame];
+//        statusBarView.tag = StatusBarViewTag;
+//        statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:self.lastSetAlpha];
+//        [window addSubview:statusBarView];
+//        [window bringSubviewToFront:statusBarView];
+//    }
+//    return statusBarView;
+//}
+
 - (void)setBackgroundTransparency:(CDVInvokedUrlCommand*)command
 {
     NSNumber* alphaParam = [command.arguments objectAtIndex:0];
@@ -131,56 +230,6 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     });
 }
 
-- (UIView *)findOrCreateStatusBarViewInWindow:(UIWindow *)window
-{
-    UIView *statusBarView = [window viewWithTag:StatusBarViewTag];
-    if (!statusBarView) {
-        CGRect statusBarFrame = window.windowScene.statusBarManager.statusBarFrame;
-        statusBarView = [[UIView alloc] initWithFrame:statusBarFrame];
-        statusBarView.tag = StatusBarViewTag;
-        statusBarView.backgroundColor = [UIColor colorWithWhite:1.0 alpha:self.lastSetAlpha];
-        [window addSubview:statusBarView];
-        [window bringSubviewToFront:statusBarView];
-    }
-    return statusBarView;
-}
-
-- (void)addBorder:(CDVInvokedUrlCommand*)command
-{
-    NSString* colorString = [command.arguments objectAtIndex:0];
-    UIColor* color = [self colorFromHexString:colorString];
-
-    NSNumber* widthNumber = [command.arguments objectAtIndex:1];
-    CGFloat width = [widthNumber floatValue];
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!self.borderWindow) {
-            self.borderWindow = [[UIWindow alloc] initWithFrame:CGRectZero];
-            self.borderWindow.windowLevel = UIWindowLevelStatusBar;
-            self.borderWindow.hidden = NO;
-        }
-
-        CGFloat statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
-        self.borderWindow.frame = CGRectMake(0, statusBarHeight, [UIScreen mainScreen].bounds.size.width, width);
-        self.borderWindow.backgroundColor = color;
-    });
-
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-
-- (void)removeBorder:(CDVInvokedUrlCommand*)command
-{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (self.borderWindow) {
-            self.borderWindow.hidden = YES;
-            self.borderWindow = nil;
-        }
-    });
-
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
 
 - (UIColor *)colorFromHexString:(NSString *)hexString {
     unsigned rgbValue = 0;
